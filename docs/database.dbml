@@ -1,0 +1,92 @@
+Enum Role {
+  USER
+  ADMIN
+}
+
+Enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+Enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+Table users {
+  id varchar [pk]
+  name varchar
+  email varchar [unique, not null]
+  password_hash varchar [not null]
+  role Role [not null, default: 'USER']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table products {
+  id varchar [pk]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  brand varchar [not null]
+  description text
+  price decimal [not null]
+  image_url varchar
+  cpu varchar
+  ram varchar
+  storage varchar
+  gpu varchar
+  screen varchar
+  stock int [not null, default: 0]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table cart_items {
+  id varchar [pk]
+  user_id varchar [not null]
+  product_id varchar [not null]
+  quantity int [not null, default: 1]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, product_id) [unique]
+  }
+}
+
+Table orders {
+  id varchar [pk]
+  user_id varchar [not null]
+  status OrderStatus [not null, default: 'PENDING']
+  payment_status PaymentStatus [not null, default: 'PENDING']
+  total_amount decimal [not null]
+  customer_name varchar [not null]
+  phone varchar [not null]
+  address text [not null]
+  note text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table order_items {
+  id varchar [pk]
+  order_id varchar [not null]
+  product_id varchar [not null]
+  quantity int [not null]
+  unit_price decimal [not null]
+  created_at timestamp [not null]
+}
+
+Ref: cart_items.user_id > users.id [delete: cascade]
+Ref: cart_items.product_id > products.id [delete: cascade]
+
+Ref: orders.user_id > users.id [delete: cascade]
+
+Ref: order_items.order_id > orders.id [delete: cascade]
+Ref: order_items.product_id > products.id

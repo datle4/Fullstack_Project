@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: laptop_shop_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: laptop_user
+      POSTGRES_PASSWORD: laptop_password
+      POSTGRES_DB: laptop_shop
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
