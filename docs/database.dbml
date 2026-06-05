@@ -28,12 +28,19 @@ Table users {
   updated_at timestamp [not null]
 }
 
+Table sessions {
+  id varchar [pk]
+  user_id varchar [not null]
+  token_hash varchar [unique, not null]
+  expires_at timestamp [not null]
+  created_at timestamp [not null]
+}
+
 Table products {
   id varchar [pk]
   name varchar [not null]
   slug varchar [unique, not null]
   brand varchar [not null]
-  description text
   price decimal [not null]
   image_url varchar
   cpu varchar
@@ -83,10 +90,12 @@ Table order_items {
   created_at timestamp [not null]
 }
 
+Ref: sessions.user_id > users.id [delete: cascade]
+
 Ref: cart_items.user_id > users.id [delete: cascade]
 Ref: cart_items.product_id > products.id [delete: cascade]
 
 Ref: orders.user_id > users.id [delete: cascade]
 
 Ref: order_items.order_id > orders.id [delete: cascade]
-Ref: order_items.product_id > products.id
+Ref: order_items.product_id > products.id [delete: restrict]
