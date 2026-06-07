@@ -1,13 +1,6 @@
-import Image from "next/image";
+import { Filter, Search, SlidersHorizontal } from "lucide-react";
+import { ProductCard } from "@/components/product/product-card";
 import { prisma } from "@/lib/prisma";
-
-function formatPrice(price: unknown) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(Number(price));
-}
 
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
@@ -19,68 +12,107 @@ export default async function ProductsPage() {
     },
   });
 
+  const brands = Array.from(new Set(products.map((product) => product.brand)));
+
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-slate-950">Laptop</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Danh sách sản phẩm đang có trong database local.
-          </p>
-        </div>
+    <main className="bg-[linear-gradient(180deg,#0b0d10_0%,#111418_26%,#14171b_100%)] px-6 py-8 text-stone-100">
+      <div className="mx-auto max-w-7xl">
+        <section className="rounded-2xl border border-[#2f3540]/60 bg-[radial-gradient(circle_at_top_left,rgba(201,148,96,0.34),transparent_34%),linear-gradient(135deg,#171a1f,#121212_56%,#0b0d10)] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-3 w-fit rounded-full border border-amber-700/50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-amber-300">
+                Premium Laptop
+              </p>
+              <h1 className="text-4xl font-semibold tracking-tight text-white">
+                Khám phá laptop
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-400">
+                Chọn laptop theo cấu hình, thương hiệu và nhu cầu sử dụng. Dữ
+                liệu hiện được đọc trực tiếp từ PostgreSQL local qua Prisma.
+              </p>
+            </div>
 
-        {products.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
-            Chưa có sản phẩm nào.
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex h-11 min-w-72 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4">
+                <Search size={18} className="text-stone-500" />
+                <input
+                  placeholder="Tìm laptop..."
+                  className="w-full bg-transparent text-sm text-stone-100 outline-none placeholder:text-stone-500"
+                />
+              </div>
+              <button className="flex h-11 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 text-sm text-stone-200 hover:border-amber-700/60">
+                <SlidersHorizontal size={17} />
+                Sắp xếp
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((product) => (
-              <article
-                key={product.id}
-                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                <div className="relative mb-4 aspect-4/3 overflow-hidden rounded-md bg-slate-100">
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      fill
-                      unoptimized
-                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover"
+        </section>
+
+        <section className="mt-8 grid gap-6 lg:grid-cols-[260px_1fr]">
+          <aside className="h-fit rounded-xl border border-[#2a2f36] bg-[#14171b] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.25)]">
+            <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-white">
+              <Filter size={17} className="text-[#e3c98d]" />
+              Bộ lọc
+            </div>
+
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Thương hiệu
+              </h2>
+              <div className="mt-3 space-y-2">
+                {brands.map((brand) => (
+                  <label
+                    key={brand}
+                    className="flex items-center gap-3 text-sm text-stone-300"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-white/20 bg-black accent-[#d6b679]"
                     />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                      No image
-                    </div>
-                  )}
-                </div>
+                    {brand}
+                  </label>
+                ))}
+              </div>
+            </div>
 
-                <div className="mb-2 text-xs font-medium uppercase text-slate-500">
-                  {product.brand}
-                </div>
+            <div className="mt-7">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Nhu cầu
+              </h2>
+              <div className="mt-3 space-y-2 text-sm text-stone-300">
+                <div>Văn phòng</div>
+                <div>Gaming</div>
+                <div>Đồ họa - Kỹ thuật</div>
+                <div>Mỏng nhẹ</div>
+              </div>
+            </div>
+          </aside>
 
-                <h2 className="line-clamp-2 min-h-12 text-base font-semibold text-slate-950">
-                  {product.name}
-                </h2>
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm text-stone-400">
+                Hiển thị{" "}
+                <span className="font-medium text-stone-100">
+                  {products.length}
+                </span>{" "}
+                sản phẩm
+              </p>
+              <p className="text-sm text-stone-500">Cập nhật mới nhất</p>
+            </div>
 
-                <div className="mt-3 space-y-1 text-sm text-slate-600">
-                  <p>CPU: {product.cpu ?? "Đang cập nhật"}</p>
-                  <p>RAM: {product.ram ?? "Đang cập nhật"}</p>
-                  <p>Ổ cứng: {product.storage ?? "Đang cập nhật"}</p>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="font-semibold text-slate-950">
-                    {formatPrice(product.price)}
-                  </p>
-                  <p className="text-xs text-slate-500">Còn {product.stock}</p>
-                </div>
-              </article>
-            ))}
+            {products.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] p-10 text-center text-stone-400">
+                Chưa có sản phẩm nào.
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </section>
       </div>
     </main>
   );
