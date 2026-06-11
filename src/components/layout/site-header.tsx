@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { Heart, Search, ShoppingCart, User } from "lucide-react";
+import { UserMenu } from "@/components/auth/user-menu";
+import { getCurrentSession } from "@/lib/auth/session";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const session = await getCurrentSession();
+
   return (
-    <header className="border-b border-[#2a2f36] bg-[#0b0d10] text-stone-100">
+    <header
+      style={{ zIndex: 1000 }}
+      className="relative border-b border-[#2a2f36] bg-[#0b0d10] text-stone-100"
+    >
       <div className="border-b border-amber-900/40 bg-[#8b744d] px-4 py-2 text-center text-xs text-amber-50">
         Ưu đãi khai trương - Giảm đến 15% cho tất cả laptop | Miễn phí vận
         chuyển toàn quốc
@@ -35,7 +42,6 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-4 lg:ml-0">
-          <User size={20} className="text-stone-300" />
           <Heart size={20} className="text-stone-300" />
           <div className="relative">
             <ShoppingCart size={21} className="text-stone-300" />
@@ -43,6 +49,18 @@ export function SiteHeader() {
               0
             </span>
           </div>
+
+          {session ? (
+            <UserMenu user={session.user} />
+          ) : (
+            <Link
+              href="/login"
+              aria-label="Đăng nhập"
+              className="text-stone-300 transition hover:text-[#e3c98d]"
+            >
+              <User size={20} />
+            </Link>
+          )}
         </div>
       </div>
     </header>
