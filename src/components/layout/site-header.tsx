@@ -2,9 +2,23 @@ import Link from "next/link";
 import { Heart, Search, ShoppingCart, User } from "lucide-react";
 import { UserMenu } from "@/components/auth/user-menu";
 import { getCurrentSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 export async function SiteHeader() {
   const session = await getCurrentSession();
+
+  const cartSummary = session
+    ? await prisma.cartItem.aggregate({
+        where: {
+          userId: session.user.id,
+        },
+        _sum: {
+          quantity: true,
+        },
+      })
+    : null;
+
+  const cartQuantity = cartSummary?._sum.quantity ?? 0;
 
   return (
     <header
@@ -28,8 +42,12 @@ export async function SiteHeader() {
           <Link href="/products" className="hover:text-amber-300">
             Sản phẩm
           </Link>
-          <span className="cursor-default hover:text-amber-300">Bộ sưu tập</span>
-          <span className="cursor-default hover:text-amber-300">Khuyến mãi</span>
+          <span className="cursor-default hover:text-amber-300">
+            Bộ sưu tập
+          </span>
+          <span className="cursor-default hover:text-amber-300">
+            Khuyến mãi
+          </span>
           <span className="cursor-default hover:text-amber-300">Hỗ trợ</span>
         </nav>
 
@@ -43,12 +61,19 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-4 lg:ml-0">
           <Heart size={20} className="text-stone-300" />
-          <div className="relative">
-            <ShoppingCart size={21} className="text-stone-300" />
-            <span className="absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full bg-amber-600 text-[10px] text-white">
-              0
-            </span>
-          </div>
+          <Link
+            href="/cart"
+            aria-label={`Giỏ hàng có ${cartQuantity} sản phẩm`}
+            className="relative text-stone-300 transition hover:text-[#e3c98d]"
+          >
+            <ShoppingCart size={21} />
+
+            {cartQuantity > 0 && (
+              <span className="absolute -right-2 -top-2 grid min-h-4 min-w-4 place-items-center rounded-full bg-amber-600 px-1 text-[10px] text-white">
+                {cartQuantity > 99 ? "99+" : cartQuantity}
+              </span>
+            )}
+          </Link>
 
           {session ? (
             <UserMenu user={session.user} />

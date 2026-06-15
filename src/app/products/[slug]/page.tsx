@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AddToCartControl } from "@/components/cart/add-to-cart-control";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -10,7 +11,6 @@ import {
   MemoryStick,
   Monitor,
   ShieldCheck,
-  ShoppingCart,
   Truck,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -146,14 +146,10 @@ export default async function ProductDetailPage({
               ))}
             </div>
 
-            <button
-              type="button"
-              disabled={product.stock === 0}
-              className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#d6b679] px-6 text-sm font-semibold text-[#111418] transition hover:bg-[#e3c98d] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ShoppingCart size={19} />
-              Thêm vào giỏ hàng
-            </button>
+            <AddToCartControl
+              productId={product.id}
+              stock={product.stock}
+            />
 
             <div className="mt-6 grid gap-3 border-t border-white/10 pt-6 text-sm text-stone-400 sm:grid-cols-3">
               <div className="flex items-center gap-2">

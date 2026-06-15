@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart } from "lucide-react";
+import { QuickAddToCartButton } from "@/components/cart/quick-add-to-cart-button";
 import Link from "next/link";
 
 
@@ -105,13 +106,10 @@ export function ProductCard({ product }: ProductCardProps) {
             <p className="mt-1 text-xs text-stone-500">Còn {product.stock}</p>
           </div>
 
-          <button
-            type="button"
-            className="grid h-10 w-10 place-items-center rounded-lg bg-[#d6b679] text-white transition hover:bg-[#e3c98d]"
-            aria-label="Thêm vào giỏ"
-          >
-            <ShoppingCart size={18} />
-          </button>
+          <QuickAddToCartButton
+            productId={product.id}
+            stock={product.stock}
+          />
         </div>
       </div>
     </article>
