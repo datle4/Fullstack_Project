@@ -182,13 +182,22 @@ export default async function CartPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
 
-              <button
-                type="button"
-                disabled={hasInvalidItems}
-                className="mt-6 h-12 w-full rounded-lg bg-[#d6b679] font-semibold text-[#111418] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Tiến hành thanh toán
-              </button>
+              {hasInvalidItems ? (
+                <button
+                  type="button"
+                  disabled
+                  className="mt-6 h-12 w-full rounded-lg bg-[#d6b679] font-semibold text-[#111418] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Tiến hành thanh toán
+                </button>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-[#d6b679] font-semibold text-[#111418] transition hover:bg-[#e3c98d]"
+                >
+                  Tiến hành thanh toán
+                </Link>
+              )}
 
               {hasInvalidItems && (
                 <p className="mt-3 text-sm text-amber-400">

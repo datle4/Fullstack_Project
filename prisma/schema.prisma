@@ -101,7 +101,7 @@ model Order {
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
   totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
-  CustomerName  String        @map("customer_name")
+  customerName  String        @map("customer_name")
   phone         String
   address       String
   note          String?
