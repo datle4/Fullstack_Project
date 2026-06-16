@@ -12,6 +12,8 @@ type CheckoutResponse = {
   order?: {
     id: string;
   };
+  orderId?: string;
+  payUrl?: string;
 };
 
 export function CheckoutForm() {
@@ -19,6 +21,7 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "MOMO">("COD");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,14 +40,17 @@ export function CheckoutForm() {
     };
 
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        paymentMethod === "MOMO" ? "/api/checkout/momo" : "/api/checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify(payload),
         },
-        credentials: "same-origin",
-        body: JSON.stringify(payload),
-      });
+      );
 
       const data = (await response.json()) as CheckoutResponse;
 
@@ -56,6 +62,11 @@ export function CheckoutForm() {
       if (!response.ok) {
         setErrors(data.errors ?? {});
         setMessage(data.message ?? "Không thể đặt hàng");
+        return;
+      }
+
+      if (paymentMethod === "MOMO" && data.payUrl) {
+        window.location.href = data.payUrl;
         return;
       }
 
@@ -160,6 +171,48 @@ export function CheckoutForm() {
         )}
       </div>
 
+      <div>
+        <p className="mb-3 text-sm text-stone-300">
+          Phương thức thanh toán
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="cursor-pointer rounded-lg border border-white/10 bg-black/20 p-4 transition has-[:checked]:border-[#d6b679] has-[:checked]:bg-[#d6b679]/10">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="COD"
+              checked={paymentMethod === "COD"}
+              onChange={() => setPaymentMethod("COD")}
+              className="sr-only"
+            />
+            <span className="block font-semibold text-stone-100">
+              Thanh toán khi nhận hàng
+            </span>
+            <span className="mt-1 block text-sm text-stone-500">
+              COD - trả tiền sau khi nhận laptop
+            </span>
+          </label>
+
+          <label className="cursor-pointer rounded-lg border border-white/10 bg-black/20 p-4 transition has-[:checked]:border-[#d6b679] has-[:checked]:bg-[#d6b679]/10">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="MOMO"
+              checked={paymentMethod === "MOMO"}
+              onChange={() => setPaymentMethod("MOMO")}
+              className="sr-only"
+            />
+            <span className="block font-semibold text-stone-100">
+              Ví MoMo
+            </span>
+            <span className="mt-1 block text-sm text-stone-500">
+              Chuyển sang MoMo để thanh toán online
+            </span>
+          </label>
+        </div>
+      </div>
+
       {message && (
         <p aria-live="polite" className="text-sm text-red-400">
           {message}
@@ -174,11 +227,15 @@ export function CheckoutForm() {
         {isSubmitting ? (
           <>
             <LoaderCircle size={18} className="animate-spin" />
-            Đang đặt hàng
+            {paymentMethod === "MOMO"
+              ? "Đang tạo thanh toán"
+              : "Đang đặt hàng"}
           </>
         ) : (
           <>
-            Đặt hàng
+            {paymentMethod === "MOMO"
+              ? "Thanh toán với MoMo"
+              : "Đặt hàng"}
             <ArrowRight size={18} />
           </>
         )}

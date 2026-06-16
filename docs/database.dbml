@@ -18,6 +18,11 @@ Enum PaymentStatus {
   REFUNDED
 }
 
+Enum payment_provider {
+  COD
+  MOMO
+}
+
 Table users {
   id varchar [pk]
   name varchar
@@ -90,12 +95,27 @@ Table order_items {
   created_at timestamp [not null]
 }
 
-Ref: sessions.user_id > users.id [delete: cascade]
+Table payments {
+  id varchar [pk]
+  order_id varchar [not null]
+  provider payment_provider [not null]
+  status payment_status [not null, default: 'PENDING']
+  amount decimal(12,2) [not null]
+  provider_request_id varchar [not null, unique]
+  provider_transaction_id varchar
+  pay_url text
+  raw_response json
+  paid_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
 
+
+
+Ref: sessions.user_id > users.id [delete: cascade]
 Ref: cart_items.user_id > users.id [delete: cascade]
 Ref: cart_items.product_id > products.id [delete: cascade]
-
 Ref: orders.user_id > users.id [delete: cascade]
-
 Ref: order_items.order_id > orders.id [delete: cascade]
 Ref: order_items.product_id > products.id [delete: restrict]
+Ref: payments.order_id > orders.id

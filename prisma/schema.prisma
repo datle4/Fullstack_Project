@@ -25,6 +25,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentProvider {
+  COD
+  MOMO
+}
+
 enum PaymentStatus {
   PENDING
   PAID
@@ -108,8 +113,9 @@ model Order {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item OrderItem[]
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item     OrderItem[]
+  payments Payment[]
 
   @@map("orders")
 }
@@ -126,4 +132,23 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+model Payment {
+  id                    String          @id @default(cuid())
+  orderId               String          @map("order_id")
+  provider              PaymentProvider
+  status                PaymentStatus   @default(PENDING)
+  amount                Decimal         @db.Decimal(12, 2)
+  providerRequestId     String          @unique @map("provider_request_id")
+  providerTransactionId String?         @map("provider_transaction_id")
+  payUrl                String?         @map("pay_url")
+  rawResponse           Json?           @map("raw_response")
+  paidAt                DateTime?       @map("paid_at")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
