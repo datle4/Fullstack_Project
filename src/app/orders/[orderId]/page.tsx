@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import {
+  PaymentProvider,
+  PaymentStatus,
+} from "@/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/session";
+import { isMomoPaymentExpired } from "@/lib/payments/expiration";
 import { prisma } from "@/lib/prisma";
 
 type OrderDetailPageProps = {
@@ -16,6 +21,89 @@ function formatPrice(price: unknown) {
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(Number(price));
+}
+
+function getPaymentDisplay(
+  paymentStatus: PaymentStatus,
+  paymentProvider: PaymentProvider,
+  isPaymentExpired: boolean,
+) {
+  if (isPaymentExpired) {
+    return {
+      label: "Thanh toán hết hạn",
+      eyebrow: "Thanh toán MoMo đã hết hạn",
+      title: "Link thanh toán đã hết hạn",
+      description:
+        "Đơn MoMo này chưa được thanh toán trong thời gian cho phép. Bạn có thể đặt lại đơn hoặc chọn phương thức khác.",
+      icon: AlertCircle,
+      iconClassName: "text-red-400",
+      badgeClassName: "bg-red-500/10 text-red-400",
+    };
+  }
+
+  if (
+    paymentProvider === PaymentProvider.COD &&
+    paymentStatus === PaymentStatus.PENDING
+  ) {
+    return {
+      label: "Chờ xác nhận đơn hàng",
+      eyebrow: "Đơn COD đã được tạo",
+      title: "Đơn hàng đang chờ xác nhận",
+      description:
+        "Đơn COD đã được ghi nhận. Khách hàng sẽ thanh toán khi nhận hàng.",
+      icon: Clock,
+      iconClassName: "text-sky-300",
+      badgeClassName: "bg-sky-500/10 text-sky-300",
+    };
+  }
+
+  if (paymentStatus === PaymentStatus.PAID) {
+    return {
+      label: "Đã thanh toán",
+      eyebrow: "Thanh toán thành công",
+      title: "Cảm ơn bạn đã đặt hàng",
+      description: "Thanh toán đã được xác nhận.",
+      icon: CheckCircle2,
+      iconClassName: "text-emerald-400",
+      badgeClassName: "bg-emerald-500/10 text-emerald-400",
+    };
+  }
+
+  if (paymentStatus === PaymentStatus.FAILED) {
+    return {
+      label: "Thanh toán thất bại",
+      eyebrow: "Thanh toán chưa hoàn tất",
+      title: "Đơn hàng chưa được thanh toán",
+      description:
+        "Thanh toán không thành công. Bạn có thể đặt lại đơn hoặc chọn phương thức khác.",
+      icon: AlertCircle,
+      iconClassName: "text-red-400",
+      badgeClassName: "bg-red-500/10 text-red-400",
+    };
+  }
+
+  if (paymentStatus === PaymentStatus.REFUNDED) {
+    return {
+      label: "Đã hoàn tiền",
+      eyebrow: "Đơn hàng đã hoàn tiền",
+      title: "Thanh toán đã được hoàn lại",
+      description: "Khoản thanh toán của đơn hàng này đã được hoàn tiền.",
+      icon: AlertCircle,
+      iconClassName: "text-sky-400",
+      badgeClassName: "bg-sky-500/10 text-sky-400",
+    };
+  }
+
+  return {
+    label: "Chờ thanh toán",
+    eyebrow: "Đơn hàng đang chờ thanh toán",
+    title: "Đơn hàng đã được tạo",
+    description:
+      "Hệ thống đang chờ xác nhận thanh toán hoặc xử lý COD.",
+    icon: Clock,
+    iconClassName: "text-amber-300",
+    badgeClassName: "bg-amber-500/10 text-amber-300",
+  };
 }
 
 export default async function OrderDetailPage({
@@ -46,6 +134,12 @@ export default async function OrderDetailPage({
           },
         },
       },
+      payments: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
     },
   });
 
@@ -53,23 +147,36 @@ export default async function OrderDetailPage({
     notFound();
   }
 
+  const latestPayment = order.payments[0];
+  const isPaymentExpired = isMomoPaymentExpired({
+    provider: latestPayment?.provider,
+    status: order.paymentStatus,
+    createdAt: latestPayment?.createdAt,
+  });
+  const paymentDisplay = getPaymentDisplay(
+    order.paymentStatus,
+    latestPayment?.provider ?? PaymentProvider.COD,
+    isPaymentExpired,
+  );
+  const PaymentIcon = paymentDisplay.icon;
+
   return (
     <main className="min-h-screen bg-[#0b0d10] px-6 py-10 text-stone-100">
       <div className="mx-auto max-w-4xl">
         <section className="rounded-lg border border-white/10 bg-[#14171b] p-8">
           <div className="flex items-start gap-4">
-            <CheckCircle2
+            <PaymentIcon
               size={36}
-              className="mt-1 text-emerald-400"
+              className={`mt-1 ${paymentDisplay.iconClassName}`}
             />
 
             <div>
               <p className="text-sm font-semibold uppercase text-[#d6b679]">
-                Đặt hàng thành công
+                {paymentDisplay.eyebrow}
               </p>
 
               <h1 className="mt-2 text-3xl font-semibold">
-                Cảm ơn bạn đã đặt hàng
+                {paymentDisplay.title}
               </h1>
 
               <p className="mt-3 text-stone-400">
@@ -77,6 +184,10 @@ export default async function OrderDetailPage({
                 <span className="font-medium text-stone-100">
                   {order.id}
                 </span>
+              </p>
+
+              <p className="mt-2 text-stone-400">
+                {paymentDisplay.description}
               </p>
             </div>
           </div>
@@ -101,6 +212,37 @@ export default async function OrderDetailPage({
               <div className="sm:col-span-2">
                 <p className="text-sm text-stone-500">Ghi chú</p>
                 <p className="mt-1 font-medium">{order.note}</p>
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm text-stone-500">
+                Trạng thái thanh toán
+              </p>
+              <span
+                className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${paymentDisplay.badgeClassName}`}
+              >
+                {paymentDisplay.label}
+              </span>
+            </div>
+
+            <div>
+              <p className="text-sm text-stone-500">
+                Phương thức thanh toán
+              </p>
+              <p className="mt-1 font-medium">
+                {latestPayment?.provider ?? "COD"}
+              </p>
+            </div>
+
+            {latestPayment?.providerTransactionId && (
+              <div className="sm:col-span-2">
+                <p className="text-sm text-stone-500">
+                  Mã giao dịch thanh toán
+                </p>
+                <p className="mt-1 font-mono text-sm font-medium">
+                  {latestPayment.providerTransactionId}
+                </p>
               </div>
             )}
           </div>

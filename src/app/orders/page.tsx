@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Package } from "lucide-react";
-import { PaymentStatus } from "@/generated/prisma/enums";
+import {
+  PaymentProvider,
+  PaymentStatus,
+} from "@/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/session";
+import { isMomoPaymentExpired } from "@/lib/payments/expiration";
 import { prisma } from "@/lib/prisma";
 
 function formatPrice(price: unknown) {
@@ -20,7 +24,18 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function getPaymentBadge(paymentStatus: PaymentStatus) {
+function getPaymentBadge(
+  paymentStatus: PaymentStatus,
+  paymentProvider: PaymentProvider,
+  isPaymentExpired: boolean,
+) {
+  if (isPaymentExpired) {
+    return {
+      label: "Thanh toán hết hạn",
+      className: "bg-red-500/10 text-red-400",
+    };
+  }
+
   if (paymentStatus === PaymentStatus.PAID) {
     return {
       label: "Đã thanh toán",
@@ -39,6 +54,16 @@ function getPaymentBadge(paymentStatus: PaymentStatus) {
     return {
       label: "Đã hoàn tiền",
       className: "bg-sky-500/10 text-sky-400",
+    };
+  }
+
+  if (
+    paymentProvider === PaymentProvider.COD &&
+    paymentStatus === PaymentStatus.PENDING
+  ) {
+    return {
+      label: "Chờ xác nhận đơn hàng",
+      className: "bg-sky-500/10 text-sky-300",
     };
   }
 
@@ -116,10 +141,19 @@ export default async function OrdersPage() {
         ) : (
           <section className="mt-8 space-y-4">
             {orders.map((order) => {
-              const paymentBadge = getPaymentBadge(order.paymentStatus);
               const firstItem = order.item[0];
               const remainingItems = order.item.length - 1;
               const latestPayment = order.payments[0];
+              const isPaymentExpired = isMomoPaymentExpired({
+                provider: latestPayment?.provider,
+                status: order.paymentStatus,
+                createdAt: latestPayment?.createdAt,
+              });
+              const paymentBadge = getPaymentBadge(
+                order.paymentStatus,
+                latestPayment?.provider ?? PaymentProvider.COD,
+                isPaymentExpired,
+              );
 
               return (
                 <article
