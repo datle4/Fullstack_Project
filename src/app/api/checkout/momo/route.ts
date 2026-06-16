@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { PaymentProvider } from "@/generated/prisma/enums";
+import {
+  PaymentProvider,
+  PaymentStatus,
+} from "@/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/session";
 import { buildMomoCreatePaymentPayload } from "@/lib/payments/momo";
 import { prisma } from "@/lib/prisma";
@@ -175,22 +178,39 @@ export async function POST(request: Request) {
     });
 
     const momoData = (await momoResponse.json()) as Prisma.InputJsonObject & {
-        payUrl?: string;
-        message?: string;
-        resultCode?: number;
+      payUrl?: string;
+      message?: string;
+      resultCode?: number;
     };
 
-    await prisma.payment.update({
-      where: {
-        id: payment.id,
-      },
-      data: {
-        payUrl: momoData.payUrl ?? null,
-        rawResponse: momoData,
-      },
-    });
+    const isMomoCreateSuccess = momoResponse.ok && Boolean(momoData.payUrl);
 
-    if (!momoResponse.ok || !momoData.payUrl) {
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          status: isMomoCreateSuccess
+            ? PaymentStatus.PENDING
+            : PaymentStatus.FAILED,
+          payUrl: momoData.payUrl ?? null,
+          rawResponse: momoData,
+        },
+      }),
+      prisma.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          paymentStatus: isMomoCreateSuccess
+            ? PaymentStatus.PENDING
+            : PaymentStatus.FAILED,
+        },
+      }),
+    ]);
+
+    if (!isMomoCreateSuccess) {
       return NextResponse.json(
         {
           message:
