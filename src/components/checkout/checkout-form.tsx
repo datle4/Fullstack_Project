@@ -70,8 +70,10 @@ export function CheckoutForm() {
         return;
       }
 
-      if (data.order?.id) {
-        router.push(`/orders/${data.order.id}`);
+      const createdOrderId = data.order?.id ?? data.orderId;
+
+      if (createdOrderId) {
+        router.replace(`/orders/${createdOrderId}`);
         router.refresh();
       }
     } catch {

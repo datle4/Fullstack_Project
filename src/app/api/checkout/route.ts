@@ -149,6 +149,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message: "Đặt hàng thành công",
+        orderId: order.id,
         order,
       },
       { status: 201 },

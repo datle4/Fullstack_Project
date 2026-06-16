@@ -136,7 +136,7 @@ export default async function MomoResultPage({
             className="flex h-12 items-center justify-center gap-2 rounded-lg bg-[#d6b679] font-semibold text-[#111418] transition hover:bg-[#e3c98d]"
           >
             <ShoppingBag size={18} />
-            Xem đơn hàng
+            Xem chi tiết đơn hàng
           </Link>
 
           <Link
