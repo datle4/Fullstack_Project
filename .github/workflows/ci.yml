@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: 
+        - main
+  pull_request:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        env:
+            DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+            APP_URL: http://localhost:3000
+            SESSION_COOKIE_NAME: lapora_session
+            MOMO_PARTNER_CODE: MOMO
+            MOMO_ACCESS_KEY: placeholder
+            MOMO_SECRET_KEY: placeholder
+            MOMO_ENDPOINT: https://test-payment.momo.vn/v2/gateway/api/create
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '22'
+                cache: 'npm'
+            
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Generate Prisma client
+              run: npx prisma generate
+
+            - name: Typecheck
+              run: npx tsc --noEmit
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Build
+              run: npm run build
