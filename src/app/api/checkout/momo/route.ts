@@ -143,7 +143,7 @@ export async function POST(request: Request) {
             orderId: createdOrder.id,
             provider: PaymentProvider.MOMO,
             amount: totalAmount,
-            providerRequestId: crypto.randomUUID(),
+            providerRequestId: createdOrder.id,
           },
           select: {
             id: true,
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
       orderId: order.id,
       requestId: payment.providerRequestId,
       amount: Number(order.totalAmount),
-      orderInfo: `Pay order ${order.id}`,
+      orderInfo: `Thanh toán đơn hàng ${order.id}`,
       redirectUrl: `${appUrl}/payment/momo/result?orderId=${order.id}`,
       ipnUrl: `${appUrl}/api/payments/momo/ipn`,
     });
