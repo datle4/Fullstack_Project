@@ -96,9 +96,9 @@ docker compose up -d
 Create a `.env` file in the project root.
 
 ```env
-DATABASE_URL="postgresql://laptop_user:laptop_password@localhost:5432/laptop_shop?schema=public"
+DATABASE_URL=""
 APP_URL="http://localhost:3000"
-SESSION_COOKIE_NAME="lapora_session"
+SESSION_COOKIE_NAME=""
 
 MOMO_PARTNER_CODE="MOMO"
 MOMO_ACCESS_KEY="your_access_key"
