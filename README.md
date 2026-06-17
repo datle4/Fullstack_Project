@@ -1,5 +1,7 @@
 # LAPORA - Fullstack Laptop E-commerce
 
+![LAPORA AWS deployment architecture](docs/architect.png)
+
 LAPORA is a fullstack laptop e-commerce project built with Next.js, Prisma,
 PostgreSQL and Docker.
 
@@ -15,7 +17,8 @@ sandbox payment, and a basic admin dashboard.
 - ORM: Prisma
 - Authentication: Custom session-based authentication with HttpOnly cookies
 - Payment: COD and MoMo sandbox
-- DevOps: Docker, Docker Compose, GitHub Actions CI
+- DevOps: Docker, Docker Compose, GitHub Actions CI/CD, AWS EC2, AWS RDS,
+  AWS Systems Manager
 
 ## Features
 
@@ -30,30 +33,78 @@ sandbox payment, and a basic admin dashboard.
 - Admin order status management
 - Admin product stock and visibility management
 - Dockerized production build
-- GitHub Actions CI for typecheck, lint, build and Docker image validation
+- GitHub Actions CI/CD for typecheck, lint, Docker image build and AWS deploy
 - Health check endpoint for deployment readiness
 
-## Architecture Overview
+## AWS Architecture Overview
 
 ```text
-Browser
-  |
-  v
-Next.js Application
-  |
-  |-- Server Components / Pages
-  |-- Route Handlers
-  |-- Server Actions
-  |
-  v
-Prisma ORM
-  |
-  v
-PostgreSQL
-
-External integration:
-- MoMo Sandbox Payment Gateway
+User Browser
+  -> Internet Gateway
+  -> EC2 public subnet
+  -> Docker Compose
+  -> Next.js app container
+  -> Prisma
+  -> Amazon RDS for PostgreSQL
 ```
+
+The application is deployed on an EC2 instance inside the default VPC in the
+`ap-southeast-1` region. The Next.js production app runs as a Docker container
+managed by Docker Compose. Public HTTP traffic reaches the EC2 instance through
+the Internet Gateway and is forwarded to the container on port `3000`.
+
+PostgreSQL is hosted on Amazon RDS instead of running as a database container on
+EC2. RDS public access is disabled, and database access is restricted to the EC2
+security group. The Next.js container connects to RDS through Prisma using the
+production `DATABASE_URL`.
+
+MoMo is integrated as an external payment gateway. During checkout, the app
+creates a payment request to MoMo Sandbox. The user is redirected to MoMo to
+complete payment, and MoMo sends an IPN callback back to the application so the
+order and payment status can be updated.
+
+Production secrets such as database URL, session cookie settings and MoMo keys
+are stored in `.env.production` on the EC2 instance and are not committed to
+GitHub.
+
+## CI/CD Deployment Flow
+
+```text
+Developer
+  -> git push
+  -> GitHub Actions
+  -> typecheck, lint, production build
+  -> Docker image build
+  -> push image to Docker Hub
+  -> AWS Systems Manager Run Command
+  -> EC2 pulls latest Docker image
+  -> Docker Compose recreates Next.js container
+  -> health check verifies /api/health
+```
+
+GitHub Actions is used for both CI and CD. On every push to the main branch, the
+workflow installs dependencies with `npm ci`, generates the Prisma Client, runs
+TypeScript type checking, runs ESLint and builds the Next.js production app.
+
+After the application passes the build checks, GitHub Actions builds a Docker
+image and pushes it to Docker Hub. The EC2 instance does not build the project
+itself, which keeps memory usage lower and makes deployment more stable on a
+small server.
+
+For deployment, GitHub Actions sends a command to EC2 through AWS Systems
+Manager instead of opening SSH access to GitHub runner IP addresses. The SSM
+agent on EC2 receives the command, pulls the latest Docker image from Docker
+Hub, recreates the app container with Docker Compose, and then checks
+`/api/health` to confirm that the application can connect to the database.
+
+This deployment model keeps the database private, avoids storing SSH keys in the
+deployment workflow, and separates responsibilities clearly:
+
+- GitHub Actions builds and publishes the image.
+- Docker Hub stores the deployable application image.
+- AWS Systems Manager triggers remote deployment on EC2.
+- EC2 runs the application container.
+- Amazon RDS stores persistent application data.
 
 ## Authentication Overview
 
@@ -168,7 +219,7 @@ Expected response:
 During development, use `npm run dev` for hot reload. Docker is mainly used to
 test the production-like image before deployment.
 
-## CI
+## CI/CD
 
 GitHub Actions is configured to run on push and pull request.
 
@@ -179,10 +230,11 @@ The pipeline currently checks:
 - TypeScript type checking
 - ESLint
 - Next.js production build
-- Docker image build validation
+- Docker image build and push
+- AWS SSM deployment to EC2
+- Deployment health check
 
-Cloud deployment documentation and architecture diagrams will be added after
-the application is deployed to AWS.
+The deployed application runs on EC2, while PostgreSQL runs on Amazon RDS.
 
 ## Useful Commands
 
@@ -206,11 +258,11 @@ Current status:
 - Cart, checkout and order flow completed
 - MoMo sandbox integration completed
 - Admin dashboard and management pages completed
-- Docker and CI pipeline completed
+- Docker and CI/CD pipeline completed
+- AWS EC2 and RDS deployment completed
 
 Next planned work:
 
-- Improve README screenshots
-- Deploy to AWS
-- Add cloud architecture diagram
-- Document the final CI/CD deployment flow
+- Add HTTPS and domain name
+- Move public traffic behind Nginx or a load balancer
+- Improve monitoring and deployment documentation
