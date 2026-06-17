@@ -1,18 +1,107 @@
+import Link from "next/link";
 import { Filter, Search, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/product/product-card";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export default async function ProductsPage() {
-  const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+type ProductsPageProps = {
+  searchParams: Promise<{
+    q?: string;
+    brand?: string | string[];
+    sort?: string;
+  }>;
+};
 
-  const brands = Array.from(new Set(products.map((product) => product.brand)));
+const sortOptions = [
+  {
+    label: "Mới nhất",
+    value: "newest",
+  },
+  {
+    label: "Giá tăng dần",
+    value: "price-asc",
+  },
+  {
+    label: "Giá giảm dần",
+    value: "price-desc",
+  },
+];
+
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
+  const params = await searchParams;
+  const query = params.q?.trim() ?? "";
+  const selectedBrands = Array.isArray(params.brand)
+    ? params.brand
+    : params.brand
+      ? [params.brand]
+      : [];
+  const selectedBrandSet = new Set(selectedBrands);
+  const sort = params.sort ?? "newest";
+  const currentSortLabel =
+    sortOptions.find((option) => option.value === sort)?.label ??
+    "Mới nhất";
+
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    ...(query && {
+      OR: [
+        {
+          name: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        {
+          brand: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        {
+          cpu: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+      ],
+    }),
+    ...(selectedBrands.length > 0 && {
+      brand: {
+        in: selectedBrands,
+      },
+    }),
+  };
+
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    sort === "price-asc"
+      ? { price: "asc" }
+      : sort === "price-desc"
+        ? { price: "desc" }
+        : { createdAt: "desc" };
+
+  const [products, allProducts] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy,
+    }),
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        brand: true,
+      },
+      orderBy: {
+        brand: "asc",
+      },
+    }),
+  ]);
+
+  const brands = Array.from(
+    new Set(allProducts.map((product) => product.brand)),
+  );
 
   return (
     <main className="bg-[linear-gradient(180deg,#0b0d10_0%,#111418_26%,#14171b_100%)] px-6 py-8 text-stone-100">
@@ -32,19 +121,51 @@ export default async function ProductsPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <form
+              action="/products"
+              className="flex flex-col gap-3 sm:flex-row"
+            >
+              {selectedBrands.map((brand) => (
+                <input
+                  key={brand}
+                  type="hidden"
+                  name="brand"
+                  value={brand}
+                />
+              ))}
               <div className="flex h-11 min-w-72 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4">
                 <Search size={18} className="text-stone-500" />
                 <input
+                  name="q"
+                  defaultValue={query}
                   placeholder="Tìm laptop..."
                   className="w-full bg-transparent text-sm text-stone-100 outline-none placeholder:text-stone-500"
                 />
               </div>
-              <button className="flex h-11 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 text-sm text-stone-200 hover:border-amber-700/60">
+
+              <div className="flex h-11 items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-4 text-sm text-stone-200">
                 <SlidersHorizontal size={17} />
-                Sắp xếp
+                <select
+                  name="sort"
+                  defaultValue={sort}
+                  className="bg-transparent outline-none"
+                >
+                  {sortOptions.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      className="bg-[#14171b] text-stone-100"
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="h-11 rounded-lg bg-[#d6b679] px-5 text-sm font-semibold text-[#111418] transition hover:bg-[#e3c98d]">
+                Áp dụng
               </button>
-            </div>
+            </form>
           </div>
         </section>
 
@@ -55,7 +176,10 @@ export default async function ProductsPage() {
               Bộ lọc
             </div>
 
-            <div>
+            <form action="/products">
+              {query && <input type="hidden" name="q" value={query} />}
+              <input type="hidden" name="sort" value={sort} />
+
               <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 Thương hiệu
               </h2>
@@ -67,13 +191,29 @@ export default async function ProductsPage() {
                   >
                     <input
                       type="checkbox"
+                      name="brand"
+                      value={brand}
+                      defaultChecked={selectedBrandSet.has(brand)}
                       className="h-4 w-4 rounded border-white/20 bg-black accent-[#d6b679]"
                     />
                     {brand}
                   </label>
                 ))}
               </div>
-            </div>
+
+              <button className="mt-5 h-10 w-full rounded-lg bg-[#d6b679] text-sm font-semibold text-[#111418] transition hover:bg-[#e3c98d]">
+                Lọc sản phẩm
+              </button>
+
+              {(query || selectedBrands.length > 0 || sort !== "newest") && (
+                <Link
+                  href="/products"
+                  className="mt-3 flex h-10 items-center justify-center rounded-lg border border-white/10 text-sm text-stone-300 transition hover:border-[#d6b679] hover:text-[#d6b679]"
+                >
+                  Xóa bộ lọc
+                </Link>
+              )}
+            </form>
 
             <div className="mt-7">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
@@ -98,6 +238,9 @@ export default async function ProductsPage() {
                 sản phẩm
               </p>
               <p className="text-sm text-stone-500">Cập nhật mới nhất</p>
+              <p className="text-sm text-stone-500">
+                Sắp xếp: {currentSortLabel}
+              </p>
             </div>
 
             {products.length === 0 ? (
