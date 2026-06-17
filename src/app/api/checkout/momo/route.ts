@@ -164,7 +164,7 @@ export async function POST(request: Request) {
       orderId: order.id,
       requestId: payment.providerRequestId,
       amount: Number(order.totalAmount),
-      orderInfo: `Thanh toán đơn hàng ${order.id}`,
+      orderInfo: `Pay order ${order.id}`,
       redirectUrl: `${appUrl}/payment/momo/result?orderId=${order.id}`,
       ipnUrl: `${appUrl}/api/payments/momo/ipn`,
     });
