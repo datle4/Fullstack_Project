@@ -143,10 +143,28 @@ export default async function Home() {
 
             <div className="relative hidden items-center justify-center lg:flex">
               <div className="absolute inset-8 rounded-full bg-[#d6b679]/20 blur-3xl" />
-              <div className="relative grid w-full max-w-xl gap-5">
-                <div className="ml-auto h-36 w-80 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#d8d7d2,#8f877d)] shadow-2xl rotate-3" />
-                <div className="h-44 w-full rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#ece8e1,#9a9187)] shadow-2xl -rotate-2" />
-                <div className="ml-16 h-28 w-96 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#bdb6ad,#6f6861)] shadow-2xl rotate-1" />
+              <div className="relative grid w-full max-w-xl grid-cols-2 items-center gap-5">
+                <div className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[#111418] shadow-2xl">
+                  <Image
+                    src="/image/hero-image.png"
+                    alt="Premium laptop setup"
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 280px, 0px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <div className="relative mt-16 aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[#111418] shadow-2xl">
+                  <Image
+                    src="/image/hero-image-2.png"
+                    alt="Laptop workspace"
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 280px, 0px"
+                    className="object-cover"
+                  />
+                </div>
               </div>
             </div>
           </div>
