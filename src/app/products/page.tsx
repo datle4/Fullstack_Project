@@ -9,8 +9,11 @@ type ProductsPageProps = {
     q?: string;
     brand?: string | string[];
     sort?: string;
+    page?: string;
   }>;
 };
+
+const PAGE_SIZE = 12;
 
 const sortOptions = [
   {
@@ -27,6 +30,50 @@ const sortOptions = [
   },
 ];
 
+function getPageNumber(value: string | undefined) {
+  const page = Number(value);
+
+  if (!Number.isInteger(page) || page < 1) {
+    return 1;
+  }
+
+  return page;
+}
+
+function buildProductsUrl({
+  query,
+  selectedBrands,
+  sort,
+  page,
+}: {
+  query: string;
+  selectedBrands: string[];
+  sort: string;
+  page: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (query) {
+    params.set("q", query);
+  }
+
+  selectedBrands.forEach((brand) => {
+    params.append("brand", brand);
+  });
+
+  if (sort !== "newest") {
+    params.set("sort", sort);
+  }
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  const queryString = params.toString();
+
+  return queryString ? `/products?${queryString}` : "/products";
+}
+
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
@@ -39,6 +86,7 @@ export default async function ProductsPage({
       : [];
   const selectedBrandSet = new Set(selectedBrands);
   const sort = params.sort ?? "newest";
+  const page = getPageNumber(params.page);
   const currentSortLabel =
     sortOptions.find((option) => option.value === sort)?.label ??
     "Mới nhất";
@@ -81,10 +129,15 @@ export default async function ProductsPage({
         ? { price: "desc" }
         : { createdAt: "desc" };
 
-  const [products, allProducts] = await Promise.all([
+  const [products, totalProducts, allProducts] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.product.count({
+      where,
     }),
     prisma.product.findMany({
       where: {
@@ -102,6 +155,26 @@ export default async function ProductsPage({
   const brands = Array.from(
     new Set(allProducts.map((product) => product.brand)),
   );
+  const totalPages = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startProductNumber =
+    totalProducts === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endProductNumber = Math.min(
+    currentPage * PAGE_SIZE,
+    totalProducts,
+  );
+  const previousPageUrl = buildProductsUrl({
+    query,
+    selectedBrands,
+    sort,
+    page: currentPage - 1,
+  });
+  const nextPageUrl = buildProductsUrl({
+    query,
+    selectedBrands,
+    sort,
+    page: currentPage + 1,
+  });
 
   return (
     <main className="bg-[linear-gradient(180deg,#0b0d10_0%,#111418_26%,#14171b_100%)] px-6 py-8 text-stone-100">
@@ -133,6 +206,7 @@ export default async function ProductsPage({
                   value={brand}
                 />
               ))}
+              <input type="hidden" name="page" value="1" />
               <div className="flex h-11 min-w-72 items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4">
                 <Search size={18} className="text-stone-500" />
                 <input
@@ -179,6 +253,7 @@ export default async function ProductsPage({
             <form action="/products">
               {query && <input type="hidden" name="q" value={query} />}
               <input type="hidden" name="sort" value={sort} />
+              <input type="hidden" name="page" value="1" />
 
               <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 Thương hiệu
@@ -229,15 +304,18 @@ export default async function ProductsPage({
           </aside>
 
           <div>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-stone-400">
                 Hiển thị{" "}
                 <span className="font-medium text-stone-100">
-                  {products.length}
+                  {startProductNumber}-{endProductNumber}
+                </span>{" "}
+                trên{" "}
+                <span className="font-medium text-stone-100">
+                  {totalProducts}
                 </span>{" "}
                 sản phẩm
               </p>
-              <p className="text-sm text-stone-500">Cập nhật mới nhất</p>
               <p className="text-sm text-stone-500">
                 Sắp xếp: {currentSortLabel}
               </p>
@@ -252,6 +330,46 @@ export default async function ProductsPage({
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#14171b] p-4 sm:flex-row">
+                <p className="text-sm text-stone-400">
+                  Trang{" "}
+                  <span className="font-medium text-stone-100">
+                    {currentPage}
+                  </span>{" "}
+                  / {totalPages}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {currentPage > 1 ? (
+                    <Link
+                      href={previousPageUrl}
+                      className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-stone-200 transition hover:border-[#d6b679] hover:text-[#d6b679]"
+                    >
+                      Trước
+                    </Link>
+                  ) : (
+                    <span className="rounded-lg border border-white/5 px-4 py-2 text-sm font-semibold text-stone-600">
+                      Trước
+                    </span>
+                  )}
+
+                  {currentPage < totalPages ? (
+                    <Link
+                      href={nextPageUrl}
+                      className="rounded-lg bg-[#d6b679] px-4 py-2 text-sm font-semibold text-[#111418] transition hover:bg-[#e3c98d]"
+                    >
+                      Sau
+                    </Link>
+                  ) : (
+                    <span className="rounded-lg bg-white/5 px-4 py-2 text-sm font-semibold text-stone-600">
+                      Sau
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
