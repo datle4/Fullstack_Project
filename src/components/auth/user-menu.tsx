@@ -9,6 +9,7 @@ import {
   LogOut,
   MapPin,
   Package,
+  ShieldCheck,
   User,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ type UserMenuProps = {
   user: {
     name: string | null;
     email: string;
+    role: "USER" | "ADMIN";
   };
 };
 
@@ -138,6 +140,18 @@ export function UserMenu({ user }: UserMenuProps) {
                 {label}
               </Link>
             ))}
+
+            {user.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex min-h-12 items-center gap-3.5 whitespace-nowrap rounded-md px-4 py-3 text-[15px] text-stone-300 transition hover:bg-white/[0.05] hover:text-[#e3c98d]"
+              >
+                <ShieldCheck size={19} />
+                Quản trị
+              </Link>
+            )}
           </div>
 
           <div className="border-t border-white/10 p-2.5">

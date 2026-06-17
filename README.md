@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LAPORA - Fullstack Laptop E-commerce Platform
 
-## Getting Started
+LAPORA is a fullstack laptop e-commerce project built with Next.js, Prisma, PostgreSQL and Docker.  
+The project focuses on real e-commerce workflows: product listing, authentication, shopping cart, checkout, order history, COD payment and MoMo sandbox payment.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Frontend: Next.js, React, Tailwind CSS
+- Backend: Next.js Route Handlers, Prisma ORM
+- Database: PostgreSQL
+- Authentication: Custom session-based authentication with HttpOnly cookies
+- Payment: COD and MoMo sandbox integration
+- DevOps: Docker, Docker Compose, GitHub Actions CI
+- Cloud plan: AWS EC2/ECS, RDS PostgreSQL, S3, CloudFront, CloudWatch
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Main Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- User registration and login
+- Secure session management with hashed session tokens
+- Product listing with search, filtering, sorting and pagination
+- Product detail page
+- Shopping cart with quantity controls and stock validation
+- Checkout with COD and MoMo payment options
+- MoMo sandbox payment creation, callback/IPN handling and payment result page
+- Order history and order detail pages
+- Dockerized production build
+- GitHub Actions CI with TypeScript, lint, build and Docker image validation
+- Health check endpoint for deployment monitoring
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture Overview
 
-## Learn More
+```text
+User Browser
+    |
+    v
+Next.js App
+    |
+    |-- Server Components / Pages
+    |-- Route Handlers / API
+    |
+    v
+Prisma ORM
+    |
+    v
+PostgreSQL Database
 
-To learn more about Next.js, take a look at the following resources:
+External integrations:
+- MoMo Sandbox Payment Gateway
+- Future AWS S3/CloudFront for product images
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database Design
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The database is designed around a typical e-commerce workflow: users browse products, add items to cart, checkout, create orders and complete payment.
 
-## Deploy on Vercel
+### Main Tables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Table | Purpose |
+| --- | --- |
+| `users` | Stores user accounts, login information and user roles. |
+| `sessions` | Stores hashed session tokens for authentication. |
+| `products` | Stores laptop product data such as name, brand, price, stock and specifications. |
+| `cart_items` | Stores products that users add to their shopping cart. |
+| `orders` | Stores checkout information and order status. |
+| `order_items` | Stores product snapshots inside each order. |
+| `payments` | Stores payment records for COD and MoMo transactions. |
